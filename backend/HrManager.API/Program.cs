@@ -9,9 +9,20 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────
-// Railway injects connection string via DATABASE_URL env var (PostgreSQL)
-var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
-    ?? builder.Configuration.GetConnectionString("Default");
+// Railway injects DATABASE_URL as postgresql://user:pass@host:port/db
+// Npgsql needs Host=...;Username=...;Password=...;Database=...
+var rawUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+string connectionString;
+if (!string.IsNullOrEmpty(rawUrl))
+{
+    var uri = new Uri(rawUrl);
+    var userInfo = uri.UserInfo.Split(':');
+    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
+}
+else
+{
+    connectionString = builder.Configuration.GetConnectionString("Default")!;
+}
 builder.Services.AddDbContext<HrDbContext>(opt =>
     opt.UseNpgsql(connectionString));
 
