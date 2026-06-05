@@ -1,45 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '../components/Sidebar'
 import Navbar  from '../components/Navbar'
+import axios   from 'axios'
 
-/* ── Mock data (thay bằng API call thực tế) ── */
-const MOCK_REQUESTS = [
-  {
-    id: 'RS-2026-0042', employeeName: 'Nguyễn Văn An', employeeCode: 'NV-001',
-    department: 'Kế toán', deviceOldId: 'IT-PC-0089', deviceType: 'Laptop',
-    deviceModel: 'Dell Inspiron 15', reason: 'Màn hình bị vỡ, không sử dụng được',
-    requestDate: '03/06/2026', managerApproved: '04/06/2026',
-    status: 'pending_it', itNote: '', newDeviceId: '', itAction: '',
-  },
-  {
-    id: 'RS-2026-0038', employeeName: 'Trần Thị Bích', employeeCode: 'NV-005',
-    department: 'Nhân sự', deviceOldId: 'IT-PC-0054', deviceType: 'Desktop',
-    deviceModel: 'HP EliteDesk 800', reason: 'Máy quá cũ, hiệu suất thấp',
-    requestDate: '01/06/2026', managerApproved: '02/06/2026',
-    status: 'processing', itNote: 'Đang kiểm tra máy', newDeviceId: '', itAction: 'new_device',
-  },
-  {
-    id: 'RS-2026-0031', employeeName: 'Lê Minh Châu', employeeCode: 'NV-012',
-    department: 'Kỹ thuật', deviceOldId: 'IT-LT-0023', deviceType: 'Laptop',
-    deviceModel: 'MacBook Pro M1', reason: 'Pin không giữ điện, sạc liên tục',
-    requestDate: '28/05/2026', managerApproved: '29/05/2026',
-    status: 'pending_purchase', itNote: 'Cần mua laptop mới thay thế', newDeviceId: '', itAction: 'new_device',
-  },
-  {
-    id: 'RS-2026-0025', employeeName: 'Phạm Thị Dung', employeeCode: 'NV-018',
-    department: 'Marketing', deviceOldId: 'IT-MN-0067', deviceType: 'Màn hình',
-    deviceModel: 'LG 27" 4K', reason: 'Màn hình chết điểm ảnh 30%',
-    requestDate: '20/05/2026', managerApproved: '21/05/2026',
-    status: 'done', itNote: 'Đã cấp màn hình dự phòng IT-MN-0089', newDeviceId: 'IT-MN-0089', itAction: 'spare',
-  },
-  {
-    id: 'RS-2026-0019', employeeName: 'Hoàng Văn Em', employeeCode: 'NV-022',
-    department: 'Kinh doanh', deviceOldId: 'IT-PC-0101', deviceType: 'Laptop',
-    deviceModel: 'Asus VivoBook 15', reason: 'Bàn phím hỏng nhiều phím',
-    requestDate: '15/05/2026', managerApproved: '16/05/2026',
-    status: 'rejected', itNote: 'Bàn phím có thể thay thế, không cần đổi máy', newDeviceId: '', itAction: '',
-  },
-]
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api',
+})
+api.interceptors.request.use(cfg => {
+  const token = localStorage.getItem('token')
+  if (token) cfg.headers.Authorization = `Bearer ${token}`
+  return cfg
+})
 
 const STATUS_CFG = {
   pending_it:      { label: 'Chờ IT xử lý',   cls: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',     dot: 'bg-amber-400' },
@@ -100,17 +71,15 @@ function ITActionModal({ ticket, onClose, onSave }) {
     if (reject) {
       if (!rejectNote.trim()) { setError('Vui lòng nhập lý do từ chối.'); return }
       setLoading(true)
-      setTimeout(() => { onSave({ ...ticket, status: 'rejected', itNote: rejectNote }); setLoading(false) }, 600)
+      onSave({ ticketId: ticket.id, action: 'reject', rejectNote })
+        .finally(() => setLoading(false))
       return
     }
     if (!action) { setError('Vui lòng chọn hướng xử lý.'); return }
     if (action !== 'repair' && !newId.trim()) { setError('Vui lòng nhập IT RS ID thiết bị mới / dự phòng.'); return }
     setLoading(true)
-    const nextStatus = action === 'new_device' ? 'pending_purchase' : 'done'
-    setTimeout(() => {
-      onSave({ ...ticket, itAction: action, newDeviceId: newId, itNote: note, status: nextStatus })
-      setLoading(false)
-    }, 700)
+    onSave({ ticketId: ticket.id, action, newDeviceId: newId, itNote: note })
+      .finally(() => setLoading(false))
   }
 
   return (
@@ -389,41 +358,88 @@ function DetailDrawer({ ticket, onClose, onProcess }) {
   )
 }
 
+/* ── helper: format ngày từ ISO string ── */
+function fmtDate(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('vi-VN')
+}
+
 /* ── Trang chính ── */
 export default function ITRequestPage() {
   const [collapsed, setCollapsed]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [tickets, setTickets]       = useState(MOCK_REQUESTS)
+  const [tickets, setTickets]       = useState([])
+  const [loading, setLoading]       = useState(true)
   const [search, setSearch]         = useState('')
   const [filterStatus, setFilter]   = useState('all')
   const [selected, setSelected]     = useState(null)
   const [processing, setProcessing] = useState(null)
   const [toast, setToast]           = useState(null)
 
+  const fetchTickets = useCallback(async () => {
+    setLoading(true)
+    try {
+      const { data } = await api.get('/it-requests')
+      // normalize field names từ API (camelCase .NET) sang format component dùng
+      setTickets(data.map(t => ({
+        id:           t.id,
+        ticketCode:   t.ticketCode,
+        employeeName: t.employeeName,
+        employeeCode: t.employeeCode,
+        department:   t.department ?? '—',
+        deviceOldId:  t.deviceOldId,
+        deviceType:   t.deviceType,
+        deviceModel:  t.deviceModel,
+        reason:       t.reason,
+        status:       t.status,
+        requestDate:  fmtDate(t.requestedAt),
+        managerApproved: fmtDate(t.managerApprovedAt),
+        itAction:     t.itAction ?? '',
+        newDeviceId:  t.newDeviceId ?? '',
+        itNote:       t.itNote ?? '',
+      })))
+    } catch {
+      setTickets([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchTickets() }, [fetchTickets])
+
   function showToast(msg, type = 'success') {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3000)
   }
 
-  function handleSave(updated) {
-    setTickets(prev => prev.map(t => t.id === updated.id ? updated : t))
-    setProcessing(null)
-    setSelected(null)
-    const isReject = updated.status === 'rejected'
-    const isPurchase = updated.status === 'pending_purchase'
-    showToast(
-      isReject   ? `Đã từ chối ticket ${updated.id}` :
-      isPurchase ? `Đã chuyển ${updated.id} sang Mua sắm` :
-                   `Đã xử lý xong ticket ${updated.id}`,
-      isReject ? 'error' : 'success'
-    )
-  }
+  const handleSave = useCallback(async ({ ticketId, action, newDeviceId, itNote, rejectNote }) => {
+    try {
+      await api.patch(`/it-requests/${ticketId}/process`, {
+        action,
+        newDeviceId: newDeviceId || null,
+        itNote:      action === 'reject' ? rejectNote : (itNote || null),
+      })
+      await fetchTickets()
+      setProcessing(null)
+      setSelected(null)
+      const isReject   = action === 'reject'
+      const isPurchase = action === 'new_device'
+      showToast(
+        isReject   ? 'Đã từ chối ticket thành công' :
+        isPurchase ? 'Đã chuyển sang Phòng Mua sắm' :
+                     'Đã xử lý ticket thành công',
+        isReject ? 'error' : 'success'
+      )
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Có lỗi xảy ra, thử lại.', 'error')
+    }
+  }, [fetchTickets])
 
   const filtered = tickets.filter(t => {
     const matchSearch = search === '' ||
-      t.id.toLowerCase().includes(search.toLowerCase()) ||
-      t.employeeName.toLowerCase().includes(search.toLowerCase()) ||
-      t.deviceOldId.toLowerCase().includes(search.toLowerCase())
+      (t.ticketCode  ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      (t.employeeName ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      (t.deviceOldId  ?? '').toLowerCase().includes(search.toLowerCase())
     const matchStatus = filterStatus === 'all' || t.status === filterStatus
     return matchSearch && matchStatus
   })
@@ -565,7 +581,15 @@ export default function ITRequestPage() {
 
           {/* Ticket list */}
           <div className="space-y-3">
-            {filtered.length === 0 ? (
+            {loading ? (
+              <div className="glass-card rounded-2xl flex items-center justify-center py-16 text-slate-400 text-sm gap-2">
+                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                Đang tải dữ liệu...
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="glass-card rounded-2xl flex flex-col items-center justify-center py-16 text-slate-400">
                 <IcoTicket className="w-12 h-12 mb-3 opacity-30" />
                 <p className="text-sm">Không có ticket nào</p>
@@ -594,7 +618,7 @@ export default function ITRequestPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <span className="text-xs font-mono font-bold text-sky-700 bg-sky-50
-                          px-2 py-0.5 rounded-lg ring-1 ring-sky-200">{t.id}</span>
+                          px-2 py-0.5 rounded-lg ring-1 ring-sky-200">{t.ticketCode}</span>
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${sc.cls}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
                           {sc.label}
