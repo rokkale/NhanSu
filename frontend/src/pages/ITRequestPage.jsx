@@ -60,7 +60,6 @@ function Timeline({ status }) {
 /* ── IT Action Modal ── */
 function ITActionModal({ ticket, onClose, onSave }) {
   const [action, setAction]     = useState(ticket.itAction || '')
-  const [newId, setNewId]       = useState(ticket.newDeviceId || '')
   const [note, setNote]         = useState(ticket.itNote || '')
   const [reject, setReject]     = useState(false)
   const [rejectNote, setRejectNote] = useState('')
@@ -76,15 +75,15 @@ function ITActionModal({ ticket, onClose, onSave }) {
       return
     }
     if (!action) { setError('Vui lòng chọn hướng xử lý.'); return }
-    if (action !== 'repair' && !newId.trim()) { setError('Vui lòng nhập IT RS ID thiết bị mới / dự phòng.'); return }
     setLoading(true)
-    onSave({ ticketId: ticket.id, action, newDeviceId: newId, itNote: note })
+    onSave({ ticketId: ticket.id, action, itNote: note })
       .finally(() => setLoading(false))
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="glass-card rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden animate-fadeUp">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm overflow-y-auto">
+      <div className="glass-card rounded-2xl shadow-2xl w-full max-w-xl flex flex-col animate-fadeUp my-auto"
+        style={{ maxHeight: 'min(calc(100vh - 24px), 90dvh)' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/50"
@@ -103,7 +102,7 @@ function ITActionModal({ ticket, onClose, onSave }) {
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-5">
+        <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
 
           {/* Thông tin thiết bị */}
           <div className="rounded-xl p-4 space-y-2.5" style={{ background: 'rgba(241,245,249,0.8)' }}>
@@ -166,27 +165,17 @@ function ITActionModal({ ticket, onClose, onSave }) {
                 </div>
               </div>
 
-              {/* IT RS ID mới */}
+              {/* Reset Device thông báo */}
               {(action === 'spare' || action === 'new_device') && (
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    {action === 'spare' ? 'IT RS ID thiết bị dự phòng' : 'IT RS ID thiết bị mới'}{' '}
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400">IT-</span>
-                    <input value={newId} onChange={e => { setNewId(e.target.value); setError('') }}
-                      placeholder="XX-0000"
-                      className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono bg-slate-50
-                        focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition uppercase"
-                      style={{ letterSpacing: '0.05em' }} />
-                  </div>
-                  {action === 'new_device' && (
-                    <p className="text-xs text-violet-600 flex items-center gap-1.5">
-                      <IcoInfo className="w-3.5 h-3.5 shrink-0" />
-                      Ticket sẽ chuyển sang <strong>Phòng Mua sắm</strong> sau khi xác nhận
+                <div className="rounded-xl p-3 bg-sky-50 ring-1 ring-sky-200 text-xs text-sky-700 flex gap-2">
+                  <IcoInfo className="w-4 h-4 shrink-0 mt-0.5 text-sky-500" />
+                  <div>
+                    <p className="font-semibold">Device ID sẽ được reset về trống</p>
+                    <p className="mt-0.5 text-sky-600">
+                      Lần đăng nhập tiếp theo từ thiết bị mới, hệ thống sẽ tự động ghi nhận thiết bị đó.
+                      {action === 'new_device' && <> Ticket sẽ chuyển sang <strong>Phòng Mua sắm</strong> sau khi xác nhận.</>}
                     </p>
-                  )}
+                  </div>
                 </div>
               )}
 
@@ -411,8 +400,9 @@ function ITCreateOnBehalfModal({ onClose, onCreated }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="glass-card rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fadeUp">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm overflow-y-auto">
+      <div className="glass-card rounded-2xl shadow-2xl w-full max-w-lg flex flex-col animate-fadeUp my-auto"
+        style={{ maxHeight: 'min(calc(100vh - 24px), 90dvh)' }}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/50"
@@ -435,7 +425,7 @@ function ITCreateOnBehalfModal({ onClose, onCreated }) {
           </button>
         </div>
 
-        <div className="px-6 py-5">
+        <div className="px-6 py-5 overflow-y-auto flex-1">
 
           {/* ── Bước 1: Xác thực ── */}
           {step === 'verify' && (

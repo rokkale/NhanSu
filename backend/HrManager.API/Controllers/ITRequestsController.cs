@@ -191,15 +191,24 @@ public class ITRequestsController(HrDbContext db) : ControllerBase
         if (!validActions.Contains(req.Action))
             return BadRequest(new { message = "Action không hợp lệ. Dùng: repair | spare | new_device | reject" });
 
-        // spare/new_device bắt buộc có NewDeviceId
-        if (req.Action is "spare" or "new_device" && string.IsNullOrWhiteSpace(req.NewDeviceId))
-            return BadRequest(new { message = "Cần nhập IT RS ID thiết bị mới / dự phòng." });
-
         var username = User.FindFirstValue(ClaimTypes.Name) ?? "";
         var user     = await db.Users.FirstOrDefaultAsync(u => u.Username == username);
 
+        // spare/new_device → reset DeviceId của nhân viên về null
+        // (lần đăng nhập tiếp theo từ máy mới sẽ tự bind)
+        if (req.Action is "spare" or "new_device")
+        {
+            var empUser = await db.Users.FirstOrDefaultAsync(u => u.EmployeeId == ticket.EmployeeId);
+            if (empUser is not null)
+            {
+                empUser.DeviceId      = null;
+                empUser.DeviceBoundAt = null;
+                empUser.UpdatedAt     = DateTime.UtcNow;
+            }
+        }
+
         ticket.ItAction      = req.Action == "reject" ? null : req.Action;
-        ticket.NewDeviceId   = req.NewDeviceId?.Trim().ToUpper();
+        ticket.NewDeviceId   = null;   // không còn lưu ID thủ công
         ticket.ItNote        = req.ItNote?.Trim();
         ticket.ItProcessedAt = DateTime.UtcNow;
         ticket.ItProcessedBy = user?.Id;
