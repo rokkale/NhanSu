@@ -7,6 +7,7 @@ public class HrDbContext(DbContextOptions<HrDbContext> options) : DbContext(opti
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Employee> Employees => Set<Employee>();
+    public DbSet<Department> Departments => Set<Department>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -29,6 +30,16 @@ public class HrDbContext(DbContextOptions<HrDbContext> options) : DbContext(opti
             e.HasOne(x => x.Employee)
              .WithOne(x => x.User)
              .HasForeignKey<User>(x => x.EmployeeId);
+        });
+
+        mb.Entity<Department>(e =>
+        {
+            e.ToTable("departments");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.Name).HasColumnName("name").HasMaxLength(100);
+            e.Property(x => x.Description).HasColumnName("description");
+            e.Property(x => x.CreatedAt).HasColumnName("created_at");
         });
 
         mb.Entity<Employee>(e =>

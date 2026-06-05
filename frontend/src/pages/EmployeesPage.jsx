@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '../components/Sidebar'
 import Navbar from '../components/Navbar'
 import axios from 'axios'
@@ -17,8 +17,13 @@ api.interceptors.request.use(cfg => {
 function AddEmployeeModal({ onClose, onSuccess }) {
   const [form, setForm] = useState({
     fullName: '', username: '', password: '', phone: '',
-    position: '', baseSalary: '', startDate: '', role: 'employee',
+    position: '', baseSalary: '', startDate: '', role: 'employee', departmentId: '',
   })
+  const [departments, setDepartments] = useState([])
+
+  useEffect(() => {
+    api.get('/departments').then(r => setDepartments(r.data)).catch(() => {})
+  }, [])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -36,14 +41,15 @@ function AddEmployeeModal({ onClose, onSuccess }) {
     setLoading(true)
     try {
       await api.post('/employees', {
-        fullName:   form.fullName,
-        username:   form.username,
-        password:   form.password,
-        phone:      form.phone || null,
-        position:   form.position || null,
-        baseSalary: parseFloat(form.baseSalary) || 0,
-        startDate:  form.startDate,
-        role:       form.role,
+        fullName:     form.fullName,
+        username:     form.username,
+        password:     form.password,
+        phone:        form.phone || null,
+        position:     form.position || null,
+        baseSalary:   parseFloat(form.baseSalary) || 0,
+        startDate:    form.startDate,
+        role:         form.role,
+        departmentId: form.departmentId ? parseInt(form.departmentId) : null,
       })
       onSuccess()
       onClose()
@@ -125,6 +131,18 @@ function AddEmployeeModal({ onClose, onSuccess }) {
               <input name="startDate" type="date" value={form.startDate} onChange={handleChange}
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50
                   focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition"/>
+            </div>
+
+            <div className="col-span-2 space-y-1">
+              <label className="text-sm font-medium text-slate-700">Phòng ban</label>
+              <select name="departmentId" value={form.departmentId} onChange={handleChange}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50
+                  focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition">
+                <option value="">— Chưa chọn phòng ban —</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
             </div>
 
             <div className="space-y-1">

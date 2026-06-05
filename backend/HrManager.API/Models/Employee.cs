@@ -16,4 +16,5 @@ public class Employee
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public User? User { get; set; }
+    public Department? Department { get; set; }
 }
