@@ -1,81 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
 
-/* ────────────────────────────────────────────
-   DỮ LIỆU MẪU (thay bằng API sau)
-──────────────────────────────────────────── */
-const employeeInfo = {
-  fullName : 'Nguyễn Văn An',
-  id       : 'NV-0042',
-  dept     : 'Kỹ thuật',
-  shift    : 'Ca sáng  07:00 – 17:00',
-  avatar   : 'A',
-}
-
-const todayAttendance = {
-  checkIn  : '07:58',
-  checkOut : null,          // null = chưa chấm ra
-  status   : 'present',     // present | late | absent
-  hoursWorked: 8.5,
-}
-
-const monthlySummary = {
-  worked  : 20,
-  absent  : 1,
-  late    : 1,
-  overtime: 12,
-  leaveLeft: 10,
-}
-
-const attendanceHistory = [
-  { date: 'T4, 04/06', checkIn: '07:58', checkOut: null,    status: 'present',  hours: null  },
-  { date: 'T3, 03/06', checkIn: '08:15', checkOut: '17:00', status: 'late',     hours: 7.8  },
-  { date: 'T2, 02/06', checkIn: '07:50', checkOut: '17:05', status: 'present',  hours: 8.1  },
-  { date: 'CN,01/06',  checkIn: '—',     checkOut: '—',     status: 'off',      hours: 0    },
-  { date: 'T7, 31/05', checkIn: '07:45', checkOut: '19:30', status: 'overtime', hours: 10.5 },
-  { date: 'T6, 30/05', checkIn: '—',     checkOut: '—',     status: 'leave',    hours: 0    },
-  { date: 'T5, 29/05', checkIn: '08:00', checkOut: '17:00', status: 'present',  hours: 8.0  },
-  { date: 'T4, 28/05', checkIn: '07:55', checkOut: '17:10', status: 'present',  hours: 8.2  },
-  { date: 'T3, 27/05', checkIn: '—',     checkOut: '—',     status: 'absent',   hours: 0    },
-  { date: 'T2, 26/05', checkIn: '07:48', checkOut: '17:00', status: 'present',  hours: 8.2  },
-]
-
-const myLeaves = [
-  { id: 1, type: 'Nghỉ phép năm',  from: '06/06', to: '07/06', days: 2,  status: 'pending'  },
-  { id: 2, type: 'Tăng ca',        from: '31/05', to: '31/05', hours: 3, status: 'approved' },
-  { id: 3, type: 'Nghỉ ốm',        from: '30/05', to: '30/05', days: 1,  status: 'approved' },
-  { id: 4, type: 'Nghỉ phép năm',  from: '10/04', to: '11/04', days: 2,  status: 'rejected' },
-]
-
-const salaryHistory = [
-  {
-    month: 'Tháng 5/2026',
-    base    : 8_000_000,
-    overtime:   450_000,
-    bonus   :   200_000,
-    insurance:  800_000,
-    total   : 7_850_000,
-    paid    : true,
-  },
-  {
-    month: 'Tháng 4/2026',
-    base    : 8_000_000,
-    overtime:   150_000,
-    bonus   :         0,
-    insurance:  800_000,
-    total   : 7_350_000,
-    paid    : true,
-  },
-  {
-    month: 'Tháng 3/2026',
-    base    : 8_000_000,
-    overtime:   600_000,
-    bonus   :   500_000,
-    insurance:  800_000,
-    total   : 8_300_000,
-    paid    : true,
-  },
-]
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api',
+})
+api.interceptors.request.use(cfg => {
+  const token = localStorage.getItem('token')
+  if (token) cfg.headers.Authorization = `Bearer ${token}`
+  return cfg
+})
 
 /* ────────────────────────────────────────────
    STATUS CONFIG
@@ -95,7 +29,7 @@ const leaveCfg = {
   rejected: { label: 'Từ chối',   cls: 'bg-red-100     text-red-700'     },
 }
 
-const fmt = (n) => n.toLocaleString('vi-VN') + ' ₫'
+const fmt = (n) => Number(n).toLocaleString('vi-VN') + ' ₫'
 
 /* ════════════════════════════════════════════
    MAIN COMPONENT
@@ -103,10 +37,19 @@ const fmt = (n) => n.toLocaleString('vi-VN') + ' ₫'
 export default function EmployeeHomePage() {
   const navigate  = useNavigate()
   const [tab, setTab]           = useState('home')
-  const [checkedIn, setCheckedIn] = useState(!!todayAttendance.checkIn)
-  const [checkedOut, setCheckedOut] = useState(!!todayAttendance.checkOut)
+  const [checkedIn, setCheckedIn] = useState(false)
+  const [checkedOut, setCheckedOut] = useState(false)
   const [showLeaveModal, setShowLeaveModal] = useState(false)
   const [selectedSalary, setSelectedSalary] = useState(0)
+  const [emp, setEmp] = useState(null)
+  const [loadingEmp, setLoadingEmp] = useState(true)
+
+  useEffect(() => {
+    api.get('/employees/me')
+      .then(r => setEmp(r.data))
+      .catch(() => {})
+      .finally(() => setLoadingEmp(false))
+  }, [])
 
   function logout() {
     localStorage.removeItem('token')
@@ -115,6 +58,8 @@ export default function EmployeeHomePage() {
     navigate('/login')
   }
 
+  const avatarLetter = emp?.fullName?.charAt(0)?.toUpperCase() ?? '?'
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col max-w-lg mx-auto relative">
 
@@ -122,11 +67,15 @@ export default function EmployeeHomePage() {
       <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-30">
         <div className="w-9 h-9 rounded-full bg-sky-600 text-white text-sm font-bold
           flex items-center justify-center shrink-0">
-          {employeeInfo.avatar}
+          {loadingEmp ? '…' : avatarLetter}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-slate-800 truncate">{employeeInfo.fullName}</p>
-          <p className="text-xs text-slate-400">{employeeInfo.id} · {employeeInfo.dept}</p>
+          <p className="text-sm font-bold text-slate-800 truncate">
+            {loadingEmp ? '...' : (emp?.fullName ?? '—')}
+          </p>
+          <p className="text-xs text-slate-400">
+            {emp?.employeeCode ?? '—'} · {emp?.department ?? '—'}
+          </p>
         </div>
         <button onClick={logout}
           className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition">
@@ -136,11 +85,11 @@ export default function EmployeeHomePage() {
 
       {/* ── Tab Content ── */}
       <main className="flex-1 overflow-y-auto pb-20">
-        {tab === 'home'       && <TabHome       checkedIn={checkedIn} checkedOut={checkedOut}
-                                                setCheckedIn={setCheckedIn} setCheckedOut={setCheckedOut} />}
+        {tab === 'home'       && <TabHome emp={emp} checkedIn={checkedIn} checkedOut={checkedOut}
+                                          setCheckedIn={setCheckedIn} setCheckedOut={setCheckedOut} />}
         {tab === 'attendance' && <TabAttendance />}
         {tab === 'leave'      && <TabLeave      onNew={() => setShowLeaveModal(true)} />}
-        {tab === 'salary'     && <TabSalary     selected={selectedSalary} setSelected={setSelectedSalary} />}
+        {tab === 'salary'     && <TabSalary     emp={emp} selected={selectedSalary} setSelected={setSelectedSalary} />}
       </main>
 
       {/* ── Bottom Navigation ── */}
@@ -173,22 +122,31 @@ export default function EmployeeHomePage() {
 /* ════════════════════════════════════════════
    TAB 1 — TRANG CHỦ
 ════════════════════════════════════════════ */
-function TabHome({ checkedIn, checkedOut, setCheckedIn, setCheckedOut }) {
+function TabHome({ emp, checkedIn, checkedOut, setCheckedIn, setCheckedOut }) {
   const now = new Date()
   const dateStr = now.toLocaleDateString('vi-VN', {
     weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'
   })
-
   const [loading, setLoading] = useState(false)
+  const [checkInTime, setCheckInTime]   = useState(null)
+  const [checkOutTime, setCheckOutTime] = useState(null)
 
   function handleCheckIn() {
     setLoading(true)
-    setTimeout(() => { setCheckedIn(true); setLoading(false) }, 800)
+    setTimeout(() => {
+      const t = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+      setCheckInTime(t); setCheckedIn(true); setLoading(false)
+    }, 800)
   }
   function handleCheckOut() {
     setLoading(true)
-    setTimeout(() => { setCheckedOut(true); setLoading(false) }, 800)
+    setTimeout(() => {
+      const t = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+      setCheckOutTime(t); setCheckedOut(true); setLoading(false)
+    }, 800)
   }
+
+  const firstName = emp?.fullName?.split(' ')?.pop() ?? '...'
 
   return (
     <div className="p-4 space-y-4">
@@ -196,8 +154,10 @@ function TabHome({ checkedIn, checkedOut, setCheckedIn, setCheckedOut }) {
       {/* Greeting */}
       <div className="bg-gradient-to-r from-sky-600 to-sky-500 rounded-2xl p-5 text-white">
         <p className="text-sm opacity-80 capitalize">{dateStr}</p>
-        <h1 className="text-xl font-bold mt-1">Xin chào, {employeeInfo.fullName.split(' ').pop()} 👋</h1>
-        <p className="text-xs opacity-70 mt-1">{employeeInfo.shift}</p>
+        <h1 className="text-xl font-bold mt-1">Xin chào, {firstName} 👋</h1>
+        <p className="text-xs opacity-70 mt-1">
+          {emp?.position ?? '—'} · {emp?.department ?? '—'}
+        </p>
       </div>
 
       {/* Check-in / Check-out Card */}
@@ -206,11 +166,8 @@ function TabHome({ checkedIn, checkedOut, setCheckedIn, setCheckedOut }) {
           <h2 className="text-sm font-bold text-slate-800">Chấm công hôm nay</h2>
           {checkedIn && (
             <span className={`text-xs font-medium px-2.5 py-1 rounded-full
-              ${checkedOut ? 'bg-slate-100 text-slate-500' :
-                todayAttendance.status === 'late'
-                  ? 'bg-amber-100 text-amber-700'
-                  : 'bg-emerald-100 text-emerald-700'}`}>
-              {checkedOut ? 'Hoàn thành' : todayAttendance.status === 'late' ? 'Đi trễ' : 'Đang làm việc'}
+              ${checkedOut ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-700'}`}>
+              {checkedOut ? 'Hoàn thành' : 'Đang làm việc'}
             </span>
           )}
         </div>
@@ -220,14 +177,14 @@ function TabHome({ checkedIn, checkedOut, setCheckedIn, setCheckedOut }) {
           <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
             <p className="text-xs text-slate-400 mb-1">Giờ vào</p>
             <p className={`text-xl font-bold ${checkedIn ? 'text-slate-800' : 'text-slate-300'}`}>
-              {checkedIn ? todayAttendance.checkIn : '--:--'}
+              {checkedIn ? checkInTime : '--:--'}
             </p>
           </div>
           <IcoArrowRight className="w-5 h-5 text-slate-300 shrink-0" />
           <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
             <p className="text-xs text-slate-400 mb-1">Giờ ra</p>
             <p className={`text-xl font-bold ${checkedOut ? 'text-slate-800' : 'text-slate-300'}`}>
-              {checkedOut ? '17:00' : '--:--'}
+              {checkedOut ? checkOutTime : '--:--'}
             </p>
           </div>
         </div>
@@ -258,64 +215,29 @@ function TabHome({ checkedIn, checkedOut, setCheckedIn, setCheckedOut }) {
         )}
       </div>
 
-      {/* Monthly summary */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-        <h2 className="text-sm font-bold text-slate-800 mb-3">Tháng này của tôi</h2>
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { label: 'Ngày làm', value: monthlySummary.worked,   color: 'text-sky-600',     bg: 'bg-sky-50'     },
-            { label: 'Vắng',     value: monthlySummary.absent,   color: 'text-red-500',     bg: 'bg-red-50'     },
-            { label: 'Trễ',      value: monthlySummary.late,     color: 'text-amber-500',   bg: 'bg-amber-50'   },
-            { label: 'Tăng ca',  value: `${monthlySummary.overtime}h`, color: 'text-violet-600', bg: 'bg-violet-50' },
-          ].map(s => (
-            <div key={s.label} className={`${s.bg} rounded-xl p-3 text-center`}>
-              <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
-              <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">{s.label}</p>
-            </div>
-          ))}
-        </div>
+      {/* Thông tin nhân viên */}
+      <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-3">
+        <h2 className="text-sm font-bold text-slate-800">Thông tin của tôi</h2>
+        {[
+          { label: 'Mã nhân viên',  value: emp?.employeeCode },
+          { label: 'Chức vụ',       value: emp?.position },
+          { label: 'Phòng ban',     value: emp?.department },
+          { label: 'Ngày vào làm',  value: emp?.startDate ? new Date(emp.startDate).toLocaleDateString('vi-VN') : null },
+          { label: 'Điện thoại',    value: emp?.phone },
+          { label: 'Lương cơ bản',  value: emp?.baseSalary != null ? fmt(emp.baseSalary) : null },
+        ].map(row => (
+          <div key={row.label} className="flex justify-between items-center text-sm">
+            <span className="text-slate-400">{row.label}</span>
+            <span className="font-semibold text-slate-700">{row.value ?? '—'}</span>
+          </div>
+        ))}
       </div>
 
-      {/* Leave balance */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100
-        flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
-          <IcoCalendar className="w-6 h-6 text-teal-500" />
-        </div>
-        <div className="flex-1">
-          <p className="text-xs text-slate-400">Số ngày phép còn lại</p>
-          <p className="text-2xl font-bold text-slate-800">{monthlySummary.leaveLeft} <span className="text-sm font-normal text-slate-400">ngày</span></p>
-        </div>
-        <span className="text-xs text-sky-600 font-medium">Năm 2026</span>
+      {/* Chú thích module chưa có DB */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700 flex gap-2">
+        <span className="text-base leading-none shrink-0">🔧</span>
+        <p>Tính năng <strong>chấm công, nghỉ phép, lịch sử lương</strong> đang được phát triển — dữ liệu sẽ hiển thị sau khi kết nối.</p>
       </div>
-
-      {/* Pending requests */}
-      {myLeaves.filter(l => l.status === 'pending').length > 0 && (
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold text-slate-800">Đơn đang chờ duyệt</h2>
-            <span className="w-5 h-5 bg-amber-400 rounded-full text-white text-xs
-              font-bold flex items-center justify-center">
-              {myLeaves.filter(l => l.status === 'pending').length}
-            </span>
-          </div>
-          <div className="space-y-2">
-            {myLeaves.filter(l => l.status === 'pending').map(l => (
-              <div key={l.id} className="flex items-center gap-3 bg-amber-50
-                border border-amber-100 rounded-xl px-3 py-2.5">
-                <IcoCalendar className="w-4 h-4 text-amber-500 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-slate-700">{l.type}</p>
-                  <p className="text-xs text-slate-400">{l.from} – {l.to}</p>
-                </div>
-                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium shrink-0">
-                  ⏳ Chờ duyệt
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -324,79 +246,14 @@ function TabHome({ checkedIn, checkedOut, setCheckedIn, setCheckedOut }) {
    TAB 2 — CHẤM CÔNG CỦA TÔI
 ════════════════════════════════════════════ */
 function TabAttendance() {
-  const [month] = useState('Tháng 6/2026')
-
   return (
     <div className="p-4 space-y-4">
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-bold text-slate-800">Lịch sử chấm công</h2>
-        <span className="text-xs text-slate-500 bg-white border border-slate-200
-          px-3 py-1.5 rounded-lg">{month}</span>
-      </div>
-
-      {/* Summary chips */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        {[
-          { label: '20 ngày làm',    color: 'bg-sky-100 text-sky-700'         },
-          { label: '1 vắng mặt',     color: 'bg-red-100 text-red-600'         },
-          { label: '1 đi trễ',       color: 'bg-amber-100 text-amber-700'     },
-          { label: '10.5h tăng ca',  color: 'bg-violet-100 text-violet-700'   },
-        ].map(c => (
-          <span key={c.label} className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full ${c.color}`}>
-            {c.label}
-          </span>
-        ))}
-      </div>
-
-      {/* List */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        {attendanceHistory.map((row, i) => {
-          const s = statusCfg[row.status]
-          const isToday = i === 0
-          return (
-            <div key={i} className={`flex items-center gap-3 px-4 py-3.5
-              ${i < attendanceHistory.length - 1 ? 'border-b border-slate-50' : ''}
-              ${isToday ? 'bg-sky-50/50' : ''}`}>
-
-              {/* Status dot */}
-              <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${s.dot}`} />
-
-              {/* Date */}
-              <div className="w-20 shrink-0">
-                <p className={`text-xs font-semibold ${isToday ? 'text-sky-600' : 'text-slate-700'}`}>
-                  {row.date} {isToday && '(Hôm nay)'}
-                </p>
-              </div>
-
-              {/* Times */}
-              <div className="flex-1 flex items-center gap-1.5">
-                {row.status !== 'off' && row.status !== 'absent' && row.status !== 'leave' ? (
-                  <>
-                    <span className="text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
-                      {row.checkIn}
-                    </span>
-                    <IcoArrowRight className="w-3 h-3 text-slate-300" />
-                    <span className="text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
-                      {row.checkOut ?? '...'}
-                    </span>
-                    {row.hours && (
-                      <span className="text-xs text-slate-400 ml-1">{row.hours}h</span>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-xs text-slate-400">—</span>
-                )}
-              </div>
-
-              {/* Badge */}
-              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${s.cls}`}>
-                {s.label}
-              </span>
-            </div>
-          )
-        })}
+      <h2 className="text-base font-bold text-slate-800">Lịch sử chấm công</h2>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100
+        flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
+        <IcoClipboard className="w-12 h-12 opacity-20" />
+        <p className="text-sm font-medium">Chưa có dữ liệu chấm công</p>
+        <p className="text-xs text-center px-8">Tính năng đang được phát triển. Dữ liệu sẽ hiển thị sau khi kết nối hệ thống chấm công.</p>
       </div>
     </div>
   )
@@ -406,16 +263,8 @@ function TabAttendance() {
    TAB 3 — NGHỈ PHÉP / TĂNG CA
 ════════════════════════════════════════════ */
 function TabLeave({ onNew }) {
-  const [filter, setFilter] = useState('all')
-
-  const filtered = filter === 'all'
-    ? myLeaves
-    : myLeaves.filter(l => l.status === filter)
-
   return (
     <div className="p-4 space-y-4">
-
-      {/* Header + new button */}
       <div className="flex items-center justify-between">
         <h2 className="text-base font-bold text-slate-800">Đơn của tôi</h2>
         <button onClick={onNew}
@@ -425,86 +274,11 @@ function TabLeave({ onNew }) {
           Tạo đơn mới
         </button>
       </div>
-
-      {/* Leave balance info */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-teal-50 border border-teal-100 rounded-xl p-3 text-center">
-          <p className="text-2xl font-bold text-teal-600">{monthlySummary.leaveLeft}</p>
-          <p className="text-xs text-teal-700 mt-0.5">Ngày phép còn lại</p>
-        </div>
-        <div className="bg-violet-50 border border-violet-100 rounded-xl p-3 text-center">
-          <p className="text-2xl font-bold text-violet-600">{monthlySummary.overtime}h</p>
-          <p className="text-xs text-violet-700 mt-0.5">Tăng ca tháng này</p>
-        </div>
-      </div>
-
-      {/* Filter tabs */}
-      <div className="flex gap-2 bg-slate-100 p-1 rounded-xl">
-        {[
-          { key: 'all',      label: 'Tất cả'    },
-          { key: 'pending',  label: 'Chờ duyệt' },
-          { key: 'approved', label: 'Đã duyệt'  },
-          { key: 'rejected', label: 'Từ chối'   },
-        ].map(f => (
-          <button key={f.key} onClick={() => setFilter(f.key)}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition
-              ${filter === f.key
-                ? 'bg-white text-slate-800 shadow-sm'
-                : 'text-slate-500'}`}>
-            {f.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Leave list */}
-      <div className="space-y-3">
-        {filtered.length === 0 && (
-          <div className="text-center py-10 text-slate-400 text-sm">
-            Không có đơn nào
-          </div>
-        )}
-        {filtered.map(l => {
-          const cfg = leaveCfg[l.status]
-          return (
-            <div key={l.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-start gap-3">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0
-                    ${l.status === 'pending'  ? 'bg-amber-100'   :
-                      l.status === 'approved' ? 'bg-emerald-100' : 'bg-red-100'}`}>
-                    {l.type.includes('Tăng ca')
-                      ? <IcoClock className={`w-5 h-5 ${
-                          l.status === 'pending'  ? 'text-amber-600'   :
-                          l.status === 'approved' ? 'text-emerald-600' : 'text-red-500'}`} />
-                      : <IcoCalendar className={`w-5 h-5 ${
-                          l.status === 'pending'  ? 'text-amber-600'   :
-                          l.status === 'approved' ? 'text-emerald-600' : 'text-red-500'}`} />
-                    }
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">{l.type}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {l.from} – {l.to}
-                      {l.days  && ` · ${l.days} ngày`}
-                      {l.hours && ` · ${l.hours} giờ`}
-                    </p>
-                  </div>
-                </div>
-                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${cfg.cls}`}>
-                  {cfg.label}
-                </span>
-              </div>
-
-              {/* Cancel button for pending */}
-              {l.status === 'pending' && (
-                <button className="mt-3 w-full py-2 rounded-xl border border-red-200
-                  text-red-500 text-xs font-semibold hover:bg-red-50 transition">
-                  Hủy đơn
-                </button>
-              )}
-            </div>
-          )
-        })}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100
+        flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
+        <IcoCalendar className="w-12 h-12 opacity-20" />
+        <p className="text-sm font-medium">Chưa có đơn nghỉ phép nào</p>
+        <p className="text-xs text-center px-8">Tính năng đang được phát triển. Nhấn "Tạo đơn mới" để gửi yêu cầu.</p>
       </div>
     </div>
   )
@@ -513,38 +287,26 @@ function TabLeave({ onNew }) {
 /* ════════════════════════════════════════════
    TAB 4 — LƯƠNG CỦA TÔI
 ════════════════════════════════════════════ */
-function TabSalary({ selected, setSelected }) {
-  const sal = salaryHistory[selected]
+function TabSalary({ emp }) {
+  const base = emp?.baseSalary ?? 0
+  const now  = new Date()
+  const monthLabel = `Tháng ${now.getMonth() + 1}/${now.getFullYear()}`
 
   return (
     <div className="p-4 space-y-4">
-
       <h2 className="text-base font-bold text-slate-800">Bảng lương của tôi</h2>
-
-      {/* Month selector */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        {salaryHistory.map((s, i) => (
-          <button key={i} onClick={() => setSelected(i)}
-            className={`shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition
-              ${selected === i
-                ? 'bg-sky-600 text-white shadow-md shadow-sky-200'
-                : 'bg-white text-slate-600 border border-slate-200'}`}>
-            {s.month}
-          </button>
-        ))}
-      </div>
 
       {/* Main salary card */}
       <div className="bg-gradient-to-br from-sky-600 to-sky-500 rounded-2xl p-5 text-white shadow-lg shadow-sky-200">
         <div className="flex items-center justify-between mb-1">
-          <p className="text-sm opacity-80">{sal.month}</p>
+          <p className="text-sm opacity-80">{monthLabel}</p>
           <span className="text-xs bg-white/20 px-2.5 py-1 rounded-full font-medium">
-            {sal.paid ? '✅ Đã thanh toán' : '⏳ Chưa thanh toán'}
+            ⏳ Chưa thanh toán
           </span>
         </div>
-        <p className="text-xs opacity-70 mb-3">Lương thực nhận</p>
-        <p className="text-3xl font-bold tracking-tight">{fmt(sal.total)}</p>
-        <p className="text-xs opacity-60 mt-2">{employeeInfo.fullName} · {employeeInfo.id}</p>
+        <p className="text-xs opacity-70 mb-3">Lương cơ bản</p>
+        <p className="text-3xl font-bold tracking-tight">{fmt(base)}</p>
+        <p className="text-xs opacity-60 mt-2">{emp?.fullName ?? '—'} · {emp?.employeeCode ?? '—'}</p>
       </div>
 
       {/* Breakdown */}
@@ -552,44 +314,34 @@ function TabSalary({ selected, setSelected }) {
         <div className="px-4 py-3 border-b border-slate-100">
           <p className="text-xs font-bold text-slate-500 tracking-wide uppercase">Chi tiết</p>
         </div>
-        {[
-          { label: 'Lương cơ bản',      value: sal.base,       type: 'add',  icon: <IcoWallet className="w-4 h-4" />   },
-          { label: 'Phụ cấp tăng ca',   value: sal.overtime,   type: 'add',  icon: <IcoClock className="w-4 h-4" />    },
-          { label: 'Thưởng',            value: sal.bonus,      type: 'add',  icon: <IcoStar className="w-4 h-4" />     },
-          { label: 'Bảo hiểm xã hội',   value: sal.insurance,  type: 'sub',  icon: <IcoShield className="w-4 h-4" />   },
-        ].map((row, i) => (
-          <div key={i} className="flex items-center gap-3 px-4 py-3.5
-            border-b border-slate-50 last:border-0">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0
-              ${row.type === 'add' ? 'bg-slate-50 text-slate-500' : 'bg-red-50 text-red-400'}`}>
-              {row.icon}
-            </div>
-            <span className="flex-1 text-sm text-slate-700">{row.label}</span>
-            <span className={`text-sm font-semibold
-              ${row.type === 'add' ? 'text-slate-800' : 'text-red-500'}`}>
-              {row.type === 'sub' ? '– ' : '+ '}{fmt(row.value)}
-            </span>
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-50">
+          <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-500 flex items-center justify-center shrink-0">
+            <IcoWallet className="w-4 h-4" />
           </div>
-        ))}
-
-        {/* Total row */}
+          <span className="flex-1 text-sm text-slate-700">Lương cơ bản</span>
+          <span className="text-sm font-semibold text-slate-800">+ {fmt(base)}</span>
+        </div>
+        <div className="px-4 py-3 bg-amber-50">
+          <p className="text-xs text-amber-700">
+            Phụ cấp, tăng ca, thưởng và khấu trừ sẽ cập nhật sau khi có dữ liệu chấm công.
+          </p>
+        </div>
         <div className="flex items-center gap-3 px-4 py-4 bg-sky-50 border-t border-sky-100">
-          <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-600
-            flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center shrink-0">
             <IcoCheckCircle className="w-4 h-4" />
           </div>
-          <span className="flex-1 text-sm font-bold text-slate-800">Thực nhận</span>
-          <span className="text-base font-bold text-sky-600">{fmt(sal.total)}</span>
+          <span className="flex-1 text-sm font-bold text-slate-800">Lương cơ bản</span>
+          <span className="text-base font-bold text-sky-600">{fmt(base)}</span>
         </div>
       </div>
 
-      {/* Download slip button */}
-      <button className="w-full py-3.5 rounded-xl border-2 border-slate-200
-        text-slate-600 text-sm font-semibold flex items-center justify-center gap-2
-        hover:border-sky-400 hover:text-sky-600 hover:bg-sky-50 transition">
-        <IcoDownload className="w-4 h-4" />
-        Tải phiếu lương PDF
-      </button>
+      {/* Lịch sử lương */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100
+        flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
+        <IcoWallet className="w-10 h-10 opacity-20" />
+        <p className="text-sm font-medium">Chưa có lịch sử lương</p>
+        <p className="text-xs text-center px-8">Lịch sử thanh toán sẽ hiển thị khi hệ thống lương được kích hoạt.</p>
+      </div>
     </div>
   )
 }

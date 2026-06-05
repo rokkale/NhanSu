@@ -4,6 +4,7 @@ using HrManager.API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace HrManager.API.Controllers;
 
@@ -12,6 +13,39 @@ namespace HrManager.API.Controllers;
 [Authorize]                         // tất cả endpoint đều cần đăng nhập
 public class EmployeesController(HrDbContext db) : ControllerBase
 {
+    // ────────────────────────────────────────────────────────────
+    // GET /api/employees/me
+    // Nhân viên xem thông tin của chính mình
+    // ────────────────────────────────────────────────────────────
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMe()
+    {
+        var username = User.FindFirstValue(ClaimTypes.Name) ?? "";
+        var user = await db.Users
+            .Include(u => u.Employee)
+                .ThenInclude(e => e!.Department)
+            .FirstOrDefaultAsync(u => u.Username == username);
+
+        if (user?.Employee is null)
+            return NotFound(new { message = "Không tìm thấy thông tin nhân viên." });
+
+        var e = user.Employee;
+        return Ok(new
+        {
+            e.Id,
+            e.EmployeeCode,
+            e.FullName,
+            e.Position,
+            e.Phone,
+            e.BaseSalary,
+            e.Status,
+            e.StartDate,
+            Department = e.Department?.Name ?? "—",
+            user.Role,
+            user.LastLogin,
+        });
+    }
+
     // ────────────────────────────────────────────────────────────
     // GET /api/employees
     // Admin & Manager xem danh sách tất cả nhân viên
