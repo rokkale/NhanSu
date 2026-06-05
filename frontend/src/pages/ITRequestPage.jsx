@@ -358,6 +358,270 @@ function DetailDrawer({ ticket, onClose, onProcess }) {
   )
 }
 
+/* ── Modal IT tạo ticket thay nhân viên ── */
+function ITCreateOnBehalfModal({ onClose, onCreated }) {
+  const [step, setStep]         = useState('verify')  // verify | form | saving | success
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPw, setShowPw]     = useState(false)
+  const [verifying, setVerifying] = useState(false)
+  const [verified, setVerified] = useState(null)       // { employeeId, employeeName, ... }
+  const [deviceOldId, setOldId] = useState('')
+  const [deviceType, setType]   = useState('')
+  const [deviceModel, setModel] = useState('')
+  const [reason, setReason]     = useState('')
+  const [errMsg, setErrMsg]     = useState('')
+  const [ticketCode, setTicket] = useState('')
+
+  const deviceTypes = ['Laptop', 'Desktop', 'Màn hình', 'Máy tính bảng', 'Khác']
+
+  async function handleVerify() {
+    if (!username.trim() || !password) { setErrMsg('Vui lòng nhập đủ tài khoản và mật khẩu.'); return }
+    setVerifying(true); setErrMsg('')
+    try {
+      const { data } = await api.post('/it-requests/verify-identity', { username: username.trim(), password })
+      setVerified(data)
+      setStep('form')
+    } catch (err) {
+      setErrMsg(err.response?.data?.message || 'Tài khoản hoặc mật khẩu không khớp.')
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  async function handleCreate() {
+    if (!deviceType) { setErrMsg('Vui lòng chọn loại thiết bị.'); return }
+    if (!deviceModel.trim()) { setErrMsg('Vui lòng nhập model thiết bị.'); return }
+    if (!deviceOldId.trim()) { setErrMsg('Vui lòng nhập IT RS ID thiết bị cũ (nhập UNKNOWN nếu không rõ).'); return }
+    if (!reason.trim()) { setErrMsg('Vui lòng nhập lý do.'); return }
+    setStep('saving'); setErrMsg('')
+    try {
+      const { data } = await api.post('/it-requests/by-it', {
+        employeeId: verified.employeeId,
+        deviceOldId: deviceOldId.trim().toUpperCase(),
+        deviceType, deviceModel: deviceModel.trim(), reason: reason.trim(),
+      })
+      setTicket(data.ticketCode)
+      setStep('success')
+      onCreated()
+    } catch (err) {
+      setErrMsg(err.response?.data?.message || 'Có lỗi xảy ra.')
+      setStep('form')
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="glass-card rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fadeUp">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/50"
+          style={{ background: 'linear-gradient(135deg, #0f2744, #1e3a5f)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-sky-500/20 flex items-center justify-center">
+              <IcoIT className="w-5 h-5 text-sky-300" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">IT Tạo Ticket Thay Nhân Viên</p>
+              <p className="text-xs text-sky-300">
+                {step === 'verify' ? 'Bước 1 / 2 — Xác thực danh tính' :
+                 step === 'form'   ? `Bước 2 / 2 — Điền thông tin thiết bị` :
+                 step === 'success'? 'Đã tạo xong' : 'Đang lưu...'}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-white/10 transition">
+            <IcoX className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="px-6 py-5">
+
+          {/* ── Bước 1: Xác thực ── */}
+          {step === 'verify' && (
+            <div className="space-y-4">
+              <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 text-xs text-sky-700 flex gap-2">
+                <IcoInfo className="w-4 h-4 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">Xác thực danh tính nhân viên</p>
+                  <p className="mt-0.5">Nhập tài khoản và mật khẩu của nhân viên để đối chiếu. Thông tin chỉ dùng để xác thực, không lưu lại.</p>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Tài khoản nhân viên <span className="text-red-500">*</span></label>
+                <input value={username} onChange={e => { setUsername(e.target.value); setErrMsg('') }}
+                  placeholder="Nhập username của nhân viên..."
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50
+                    focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition" />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Mật khẩu nhân viên <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <input value={password} type={showPw ? 'text' : 'password'}
+                    onChange={e => { setPassword(e.target.value); setErrMsg('') }}
+                    placeholder="Nhập mật khẩu của nhân viên..."
+                    className="w-full px-3 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50
+                      focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition" />
+                  <button type="button" onClick={() => setShowPw(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+                    {showPw
+                      ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                      : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    }
+                  </button>
+                </div>
+              </div>
+
+              {errMsg && (
+                <div className="flex gap-2 items-center bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">
+                  <IcoX className="w-4 h-4 shrink-0" /> {errMsg}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <button onClick={onClose}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
+                  Hủy
+                </button>
+                <button onClick={handleVerify} disabled={verifying}
+                  className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold
+                    flex items-center justify-center gap-2 hover:scale-[1.02] transition-all disabled:opacity-60
+                    bg-gradient-to-r from-sky-500 to-blue-600 shadow-md">
+                  {verifying
+                    ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Đang xác thực...</>
+                    : <><IcoIT className="w-4 h-4" /> Xác thực danh tính</>
+                  }
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Bước 2: Điền thiết bị ── */}
+          {step === 'form' && verified && (
+            <div className="space-y-4">
+              {/* Thông tin nhân viên đã verify */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl text-sm font-bold flex items-center justify-center shrink-0 text-white"
+                  style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+                  {(verified.employeeName ?? '?').charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-emerald-800">{verified.employeeName}</p>
+                  <p className="text-xs text-emerald-600">{verified.employeeCode} · {verified.department ?? '—'}</p>
+                </div>
+                <span className="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-1 rounded-lg">
+                  ✓ Đã xác thực
+                </span>
+              </div>
+
+              {/* IT RS ID cũ */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">
+                  IT RS ID thiết bị cũ <span className="text-red-500">*</span>
+                </label>
+                <input value={deviceOldId} onChange={e => { setOldId(e.target.value); setErrMsg('') }}
+                  placeholder="VD: IT-PC-0089 (nhập UNKNOWN nếu không rõ)"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm font-mono bg-slate-50
+                    focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition uppercase" />
+              </div>
+
+              {/* Loại thiết bị */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Loại thiết bị <span className="text-red-500">*</span></label>
+                <div className="flex flex-wrap gap-2">
+                  {deviceTypes.map(t => (
+                    <button key={t} type="button" onClick={() => { setType(t); setErrMsg('') }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all
+                        ${deviceType === t
+                          ? 'bg-sky-50 border-sky-500 text-sky-700'
+                          : 'border-slate-200 text-slate-600 hover:border-sky-300'}`}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Model */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Model thiết bị <span className="text-red-500">*</span></label>
+                <input value={deviceModel} onChange={e => { setModel(e.target.value); setErrMsg('') }}
+                  placeholder="VD: Dell Inspiron 15, HP EliteDesk..."
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50
+                    focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition" />
+              </div>
+
+              {/* Lý do */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Lý do <span className="text-red-500">*</span></label>
+                <textarea value={reason} onChange={e => { setReason(e.target.value); setErrMsg('') }}
+                  rows={2} placeholder="VD: Máy hỏng, mất thiết bị, đổi máy mới..."
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50
+                    focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition resize-none" />
+              </div>
+
+              {errMsg && (
+                <div className="flex gap-2 items-center bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">
+                  <IcoX className="w-4 h-4 shrink-0" /> {errMsg}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <button onClick={() => { setStep('verify'); setVerified(null); setErrMsg('') }}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
+                  ← Quay lại
+                </button>
+                <button onClick={handleCreate}
+                  className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold
+                    flex items-center justify-center gap-2 hover:scale-[1.02] transition-all
+                    bg-gradient-to-r from-sky-500 to-blue-600 shadow-md">
+                  <IcoIT className="w-4 h-4" /> Tạo ticket &amp; xử lý
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Saving ── */}
+          {step === 'saving' && (
+            <div className="py-8 flex flex-col items-center gap-3 text-slate-500">
+              <svg className="w-10 h-10 animate-spin text-sky-500" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+              <p className="text-sm font-medium">Đang tạo ticket...</p>
+            </div>
+          )}
+
+          {/* ── Success ── */}
+          {step === 'success' && (
+            <div className="py-4 space-y-4 text-center">
+              <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+                <svg className="w-7 h-7 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+              </div>
+              <div>
+                <p className="font-bold text-slate-800">Đã tạo ticket thành công!</p>
+                <p className="text-xs text-slate-500 mt-1">Ticket đã được tạo và đang ở trạng thái <strong>IT đang xử lý</strong>.</p>
+              </div>
+              <div className="bg-sky-50 border border-sky-200 rounded-xl p-3">
+                <p className="text-xs text-slate-500">Mã ticket</p>
+                <p className="text-lg font-bold font-mono text-sky-700 mt-1">{ticketCode}</p>
+              </div>
+              <button onClick={onClose}
+                className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold transition">
+                Đóng &amp; xem danh sách
+              </button>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ── helper: format ngày từ ISO string ── */
 function fmtDate(iso) {
   if (!iso) return '—'
@@ -375,6 +639,7 @@ export default function ITRequestPage() {
   const [selected, setSelected]     = useState(null)
   const [processing, setProcessing] = useState(null)
   const [toast, setToast]           = useState(null)
+  const [showCreateByIT, setShowCreateByIT] = useState(false)
 
   const fetchTickets = useCallback(async () => {
     setLoading(true)
@@ -461,6 +726,13 @@ export default function ITRequestPage() {
           onClick={() => setMobileOpen(false)} />
       )}
 
+      {showCreateByIT && (
+        <ITCreateOnBehalfModal
+          onClose={() => setShowCreateByIT(false)}
+          onCreated={() => { fetchTickets(); showToast('Đã tạo ticket thành công!') }}
+        />
+      )}
+
       {processing && (
         <ITActionModal
           ticket={processing}
@@ -507,12 +779,21 @@ export default function ITRequestPage() {
                 {counts.pending_it} ticket chờ IT xử lý
               </p>
             </div>
-            <button className="flex items-center gap-2 px-3 md:px-4 py-2 text-white text-sm font-medium
-              rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-lg shadow-md"
-              style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
-              <IcoExport className="w-4 h-4" />
-              <span className="hidden sm:inline">Xuất báo cáo</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowCreateByIT(true)}
+                className="flex items-center gap-2 px-3 md:px-4 py-2 text-white text-sm font-medium
+                  rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-lg shadow-md"
+                style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)' }}>
+                <IcoIT className="w-4 h-4" />
+                <span className="hidden sm:inline">IT Tạo Thay</span>
+              </button>
+              <button className="flex items-center gap-2 px-3 md:px-4 py-2 text-white text-sm font-medium
+                rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-lg shadow-md"
+                style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
+                <IcoExport className="w-4 h-4" />
+                <span className="hidden sm:inline">Xuất báo cáo</span>
+              </button>
+            </div>
           </div>
 
           {/* KPI cards */}

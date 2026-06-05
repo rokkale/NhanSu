@@ -1,6 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { login } from '../api/auth'
+import axios from 'axios'
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api',
+})
 
 /* ── Forgot Password Modal ── */
 function ForgotModal({ onClose }) {
@@ -271,6 +276,175 @@ function getDeviceId() {
   return id
 }
 
+/* ── Modal gửi yêu cầu đổi thiết bị từ màn hình login ── */
+function DeviceRequestModal({ username, password, onClose }) {
+  const [step, setStep]         = useState('form')   // form | sending | success | error
+  const [deviceType, setType]   = useState('')
+  const [deviceModel, setModel] = useState('')
+  const [reason, setReason]     = useState('Tôi cần đăng nhập trên thiết bị mới.')
+  const [errMsg, setErrMsg]     = useState('')
+  const [ticketCode, setTicket] = useState('')
+
+  const deviceTypes = ['Laptop', 'Desktop', 'Máy tính bảng', 'Điện thoại', 'Khác']
+
+  async function handleSend() {
+    if (!deviceType) { setErrMsg('Vui lòng chọn loại thiết bị.'); return }
+    if (!deviceModel.trim()) { setErrMsg('Vui lòng nhập tên/model thiết bị.'); return }
+    setStep('sending')
+    try {
+      const { data } = await api.post('/it-requests/request-device-change', {
+        username, password, deviceType, deviceModel: deviceModel.trim(), reason,
+      })
+      setTicket(data.ticketCode)
+      setStep('success')
+    } catch (err) {
+      setErrMsg(err.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại.')
+      setStep('error')
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-[fadeUp_0.2s_ease-out]">
+
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between"
+          style={{ background: 'linear-gradient(135deg, #0f2744, #1e3a5f)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-sky-500/20 flex items-center justify-center">
+              <IconHeadset className="w-5 h-5 text-sky-300" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">Yêu cầu hỗ trợ IT</p>
+              <p className="text-xs text-sky-300">Đổi thiết bị đăng nhập</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-white/10 transition">
+            <IconX className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="px-6 py-5">
+
+          {/* Step: form */}
+          {(step === 'form' || step === 'error') && (
+            <div className="space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700 flex gap-2">
+                <span className="text-base leading-none">⚠️</span>
+                <div>
+                  <p className="font-semibold">Thiết bị không được phép đăng nhập</p>
+                  <p className="mt-0.5">Điền thông tin bên dưới, IT sẽ xử lý và liên hệ bạn sớm nhất.</p>
+                </div>
+              </div>
+
+              {/* Tài khoản (readonly) */}
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-slate-500">Tài khoản đang yêu cầu</label>
+                <div className="px-3 py-2 rounded-xl bg-slate-100 text-sm font-mono text-slate-600 border border-slate-200">
+                  {username}
+                </div>
+              </div>
+
+              {/* Loại thiết bị */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">
+                  Loại thiết bị mới <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {deviceTypes.map(t => (
+                    <button key={t} type="button" onClick={() => { setType(t); setErrMsg('') }}
+                      className={`py-2 px-2 rounded-xl text-xs font-semibold border-2 transition-all
+                        ${deviceType === t
+                          ? 'bg-sky-50 border-sky-500 text-sky-700 scale-[1.02]'
+                          : 'border-slate-200 text-slate-600 hover:border-sky-300 hover:bg-sky-50'}`}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Model thiết bị */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">
+                  Tên / Model thiết bị <span className="text-red-500">*</span>
+                </label>
+                <input value={deviceModel} onChange={e => { setModel(e.target.value); setErrMsg('') }}
+                  placeholder="VD: Dell Inspiron 15, iPhone 14, HP EliteBook..."
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50
+                    focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition" />
+              </div>
+
+              {/* Lý do */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Lý do</label>
+                <textarea value={reason} onChange={e => setReason(e.target.value)}
+                  rows={2} placeholder="Mô tả thêm lý do nếu cần..."
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50
+                    focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition resize-none" />
+              </div>
+
+              {errMsg && (
+                <div className="flex gap-2 items-center bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">
+                  <IconAlert className="w-4 h-4 shrink-0" /> {errMsg}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={onClose}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
+                  Hủy
+                </button>
+                <button type="button" onClick={handleSend}
+                  className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold
+                    flex items-center justify-center gap-2 hover:scale-[1.02] hover:shadow-lg shadow-md transition-all"
+                  style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)' }}>
+                  <IconHeadset className="w-4 h-4" /> Gửi yêu cầu IT
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step: sending */}
+          {step === 'sending' && (
+            <div className="py-8 flex flex-col items-center gap-4 text-slate-500">
+              <IconSpinner className="w-10 h-10 animate-spin text-sky-500" />
+              <p className="text-sm font-medium">Đang gửi yêu cầu đến IT...</p>
+            </div>
+          )}
+
+          {/* Step: success */}
+          {step === 'success' && (
+            <div className="py-4 space-y-4 text-center">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+                <IconCheck className="w-8 h-8 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-base font-bold text-slate-800">Đã gửi yêu cầu thành công!</p>
+                <p className="text-xs text-slate-500 mt-1">Bộ phận IT sẽ liên hệ và hỗ trợ bạn sớm nhất.</p>
+              </div>
+              <div className="bg-sky-50 border border-sky-200 rounded-xl p-3">
+                <p className="text-xs text-slate-500">Mã ticket của bạn</p>
+                <p className="text-lg font-bold font-mono text-sky-700 mt-1">{ticketCode}</p>
+                <p className="text-xs text-slate-400 mt-1">Lưu mã này để tra cứu tình trạng xử lý</p>
+              </div>
+              <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-amber-700 text-left">
+                <p className="font-semibold mb-1">Trong khi chờ IT xử lý:</p>
+                <p>• Liên hệ hotline: <strong>(028) 3456 7890</strong></p>
+                <p>• Hoặc nhờ đồng nghiệp gần nhất liên hệ IT hộ</p>
+              </div>
+              <button onClick={onClose}
+                className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold transition">
+                Đã hiểu, đóng
+              </button>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function LoginPage() {
   const navigate = useNavigate()
   const [form, setForm] = useState({ username: '', password: '' })
@@ -279,6 +453,7 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false)
   const [showForgot, setShowForgot] = useState(false)
   const [deviceBlocked, setDeviceBlocked] = useState(false)
+  const [showDeviceRequest, setShowDeviceRequest] = useState(false)
 
   function handleChange(e) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
@@ -315,6 +490,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {showForgot && <ForgotModal onClose={() => setShowForgot(false)} />}
+      {showDeviceRequest && (
+        <DeviceRequestModal
+          username={form.username}
+          password={form.password}
+          onClose={() => setShowDeviceRequest(false)}
+        />
+      )}
 
       {/* ── Left: branding panel ── */}
       <div className="hidden lg:flex w-[52%] flex-col justify-between p-14 text-white select-none relative overflow-hidden"
@@ -398,19 +580,33 @@ export default function LoginPage() {
 
           {/* Màn hình bị khoá thiết bị */}
           {deviceBlocked && (
-            <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl p-5 text-center space-y-3">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-                <IconAlert className="w-6 h-6 text-red-500" />
+            <div className="mb-6 space-y-3">
+              {/* Cảnh báo */}
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-5 text-center space-y-2">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                  <IconAlert className="w-6 h-6 text-red-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-red-700">Thiết bị không được phép</p>
+                  <p className="text-xs text-red-500 mt-1">
+                    Tài khoản <strong>{form.username}</strong> đã được đăng ký trên một thiết bị khác.
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-bold text-red-700">Thiết bị không được phép</p>
-                <p className="text-xs text-red-500 mt-1">
-                  Tài khoản này đã được đăng ký trên một thiết bị khác.
-                  <br />Liên hệ bộ phận IT để được hỗ trợ.
-                </p>
-              </div>
-              <div className="bg-white border border-red-100 rounded-xl p-3 text-left space-y-1.5">
-                <p className="text-xs font-semibold text-slate-600">Thông tin liên hệ IT:</p>
+
+              {/* Nút gửi yêu cầu IT — nổi bật */}
+              <button onClick={() => setShowDeviceRequest(true)}
+                className="w-full py-3 rounded-xl text-white text-sm font-semibold
+                  flex items-center justify-center gap-2 hover:scale-[1.02] hover:shadow-lg
+                  shadow-md transition-all duration-200"
+                style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)' }}>
+                <IconHeadset className="w-4 h-4" />
+                Gửi yêu cầu đến bộ phận IT
+              </button>
+
+              {/* Liên hệ trực tiếp */}
+              <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-1.5">
+                <p className="text-xs font-semibold text-slate-500">Hoặc liên hệ IT trực tiếp:</p>
                 <a href="tel:02834567890"
                   className="flex items-center gap-2 text-xs text-sky-600 hover:underline">
                   <IconPhone className="w-3.5 h-3.5" /> (028) 3456 7890
@@ -420,8 +616,9 @@ export default function LoginPage() {
                   <IconMail className="w-3.5 h-3.5" /> it-support@company.vn
                 </a>
               </div>
+
               <button onClick={() => setDeviceBlocked(false)}
-                className="text-xs text-slate-400 hover:underline">
+                className="w-full text-xs text-slate-400 hover:text-slate-600 transition py-1">
                 ← Thử tài khoản khác
               </button>
             </div>
