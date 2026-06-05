@@ -109,7 +109,9 @@ export default function EmployeeHomePage() {
   const [selectedSalary, setSelectedSalary] = useState(0)
 
   function logout() {
-    localStorage.clear()
+    localStorage.removeItem('token')
+    localStorage.removeItem('role')
+    localStorage.removeItem('fullName')
     navigate('/login')
   }
 

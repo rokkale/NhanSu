@@ -15,7 +15,9 @@ export default function Navbar({ onMenuToggle, onMobileMenuToggle, collapsed }) 
   })
 
   function logout() {
-    localStorage.clear()
+    localStorage.removeItem('token')
+    localStorage.removeItem('role')
+    localStorage.removeItem('fullName')
     navigate('/login')
   }
 
