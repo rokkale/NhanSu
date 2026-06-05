@@ -63,8 +63,14 @@
   100% { background-position:  200% center; }
 }
 
-.animate-fadeUp    { animation: fadeUp 0.25s ease-out both; }
-.animate-slideUp   { animation: slideUp 0.3s ease-out both; }
+.animate-fadeUp       { animation: fadeUp 0.25s ease-out both; }
+.animate-slideUp      { animation: slideUp 0.3s ease-out both; }
+.animate-slideInRight { animation: slideInRight 0.3s cubic-bezier(0.4,0,0.2,1) both; }
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
 .animate-active-pulse { animation: activePulse 2s ease-in-out infinite; }
 
 /* ── Scrollbar hide ── */

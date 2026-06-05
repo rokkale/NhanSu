@@ -3,6 +3,7 @@ import LoginPage        from './pages/LoginPage'
 import DashboardPage    from './pages/DashboardPage'
 import EmployeeHomePage from './pages/EmployeeHomePage'
 import EmployeesPage    from './pages/EmployeesPage'
+import ITRequestPage    from './pages/ITRequestPage'
 
 /* Kiểm tra đăng nhập + phân quyền role */
 function PrivateRoute({ children, allowedRoles }) {
@@ -45,6 +46,13 @@ export default function App() {
       <Route path="/employees" element={
         <PrivateRoute allowedRoles={['admin', 'manager']}>
           <EmployeesPage />
+        </PrivateRoute>
+      } />
+
+      {/* Trang IT Request – Đổi thiết bị */}
+      <Route path="/it-requests" element={
+        <PrivateRoute allowedRoles={['admin', 'manager']}>
+          <ITRequestPage />
         </PrivateRoute>
       } />
 
