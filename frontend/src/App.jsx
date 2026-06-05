@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage        from './pages/LoginPage'
 import DashboardPage    from './pages/DashboardPage'
 import EmployeeHomePage from './pages/EmployeeHomePage'
+import EmployeesPage    from './pages/EmployeesPage'
 
 /* Kiểm tra đăng nhập + phân quyền role */
 function PrivateRoute({ children, allowedRoles }) {
@@ -37,6 +38,13 @@ export default function App() {
       <Route path="/dashboard" element={
         <PrivateRoute allowedRoles={['admin', 'manager']}>
           <DashboardPage />
+        </PrivateRoute>
+      } />
+
+      {/* Trang Quản lý nhân viên */}
+      <Route path="/employees" element={
+        <PrivateRoute allowedRoles={['admin', 'manager']}>
+          <EmployeesPage />
         </PrivateRoute>
       } />
 
