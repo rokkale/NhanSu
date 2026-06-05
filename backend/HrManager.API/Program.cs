@@ -9,11 +9,11 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────
-// Railway injects connection string via SQLSERVER_CONNECTION_STRING env var
-var connectionString = Environment.GetEnvironmentVariable("SQLSERVER_CONNECTION_STRING")
+// Railway injects connection string via DATABASE_URL env var (PostgreSQL)
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
     ?? builder.Configuration.GetConnectionString("Default");
 builder.Services.AddDbContext<HrDbContext>(opt =>
-    opt.UseSqlServer(connectionString));
+    opt.UseNpgsql(connectionString));
 
 // ── JWT ───────────────────────────────────────────────
 var jwtKey = builder.Configuration["Jwt:Key"]!;
