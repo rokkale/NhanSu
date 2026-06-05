@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const menu = [
@@ -50,34 +49,46 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
   }
 
   return (
-    <aside className={`
-      flex flex-col bg-[#0a1628] text-white transition-all duration-300 select-none
-      fixed md:static inset-y-0 left-0 z-50
-      ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
-      ${collapsed ? 'md:w-16' : 'md:w-60'} w-72
-    `}>
+    <aside
+      style={{ background: 'linear-gradient(160deg, #0d1f3c 0%, #162e5a 100%)' }}
+      className={`
+        flex flex-col text-white select-none shrink-0
+        fixed md:static inset-y-0 left-0 z-50
+        transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+        ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+        ${collapsed ? 'md:w-[72px]' : 'md:w-64'} w-72
+      `}
+    >
+      {/* Decorative glow blob */}
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(14,165,233,0.18) 0%, transparent 70%)' }} />
+
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-white/10 h-16">
-        <div className="w-8 h-8 bg-sky-500 rounded-lg flex items-center justify-center shrink-0">
+      <div className={`flex items-center border-b border-white/10 h-16 shrink-0
+        ${collapsed ? 'px-0 justify-center' : 'px-5 gap-3'}`}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 glow-blue"
+          style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
           <IcoBuilding className="w-4 h-4 text-white" />
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
-            <p className="text-sm font-bold leading-tight">HR Manager</p>
+            <p className="text-sm font-bold leading-tight tracking-wide">HR Manager</p>
             <p className="text-[10px] text-sky-400 leading-tight">Quản lý nhân sự</p>
           </div>
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 space-y-1 scrollbar-hide">
+      <nav className="flex-1 overflow-y-auto py-3 scrollbar-hide space-y-0.5">
         {menu.map(group => (
           <div key={group.group}>
             {!collapsed && (
-              <p className="text-[10px] font-semibold text-slate-500 px-4 pt-3 pb-1 tracking-widest">
+              <p className="text-[9px] font-bold text-slate-500 px-5 pt-4 pb-1.5 tracking-[0.15em] uppercase">
                 {group.group}
               </p>
             )}
+            {collapsed && <div className="h-2" />}
+
             {group.items.map(item => {
               const active = location.pathname === item.path
               return (
@@ -86,17 +97,46 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
                   onClick={() => handleNav(item.path)}
                   title={collapsed ? item.label : ''}
                   className={`
-                    w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-150
+                    group relative w-full flex items-center gap-3
+                    text-sm transition-all duration-200
+                    ${collapsed ? 'justify-center px-0 py-3' : 'px-5 py-2.5'}
                     ${active
-                      ? 'bg-sky-600 text-white'
-                      : 'text-slate-400 hover:bg-white/5 hover:text-white'}
-                    ${collapsed ? 'justify-center' : ''}
+                      ? 'nav-active text-white'
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'}
                   `}
                 >
-                  <span className="w-4 h-4 shrink-0">{item.icon}</span>
-                  {!collapsed && <span className="truncate">{item.label}</span>}
-                  {!collapsed && active && (
-                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-sky-300" />
+                  {/* active left border */}
+                  {active && !collapsed && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5
+                      rounded-r-full bg-sky-400" />
+                  )}
+
+                  {/* icon wrapper */}
+                  <span className={`
+                    w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-200
+                    ${active
+                      ? 'bg-sky-500/30 text-sky-300 scale-105 shadow-blue-glow'
+                      : 'text-slate-400 group-hover:text-sky-300 group-hover:bg-white/8 group-hover:scale-110'}
+                  `}>
+                    <span className="w-4 h-4">{item.icon}</span>
+                  </span>
+
+                  {!collapsed && (
+                    <span className="truncate font-medium">{item.label}</span>
+                  )}
+
+                  {/* active pulse dot */}
+                  {active && !collapsed && (
+                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-sky-400 animate-active-pulse shrink-0" />
+                  )}
+
+                  {/* Tooltip when collapsed */}
+                  {collapsed && (
+                    <span className="absolute left-full ml-3 px-2.5 py-1 bg-slate-800 text-white
+                      text-xs rounded-lg opacity-0 pointer-events-none whitespace-nowrap
+                      group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-lg">
+                      {item.label}
+                    </span>
                   )}
                 </button>
               )
@@ -105,6 +145,17 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
         ))}
       </nav>
 
+      {/* Collapse toggle — desktop only */}
+      <div className="hidden md:flex items-center justify-center p-3 border-t border-white/10">
+        <button
+          onClick={onToggle}
+          className="w-8 h-8 rounded-lg flex items-center justify-center
+            text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200"
+          title={collapsed ? 'Mở rộng' : 'Thu gọn'}
+        >
+          {collapsed ? <IcoChevronRight /> : <IcoChevronLeft />}
+        </button>
+      </div>
     </aside>
   )
 }

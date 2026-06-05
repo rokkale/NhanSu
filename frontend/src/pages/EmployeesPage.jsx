@@ -62,11 +62,19 @@ function AddEmployeeModal({ onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+      <div className="glass-card rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fadeUp">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h3 className="text-base font-bold text-slate-800">Thêm nhân viên mới</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/50">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
+              style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+              </svg>
+            </div>
+            <h3 className="text-base font-bold text-slate-800">Thêm nhân viên mới</h3>
+          </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
@@ -167,12 +175,14 @@ function AddEmployeeModal({ onClose, onSuccess }) {
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
               className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium
-                text-slate-600 hover:bg-slate-50 transition">
+                text-slate-600 hover:bg-slate-50 transition-all duration-200">
               Hủy
             </button>
             <button type="submit" disabled={loading}
-              className="flex-1 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white
-                text-sm font-semibold transition disabled:opacity-60 flex items-center justify-center gap-2">
+              className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold
+                transition-all duration-200 disabled:opacity-60 flex items-center justify-center gap-2
+                hover:scale-[1.02] hover:shadow-lg shadow-md"
+              style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
               {loading && (
                 <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -225,9 +235,9 @@ export default function EmployeesPage() {
   )
 
   return (
-    <div className="flex h-screen bg-slate-100 overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ background: 'linear-gradient(135deg, #f0f6ff 0%, #e8f1fb 50%, #f0f4ff 100%)' }}>
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-black/50 md:hidden"
+        <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
           onClick={() => setMobileOpen(false)} />
       )}
 
@@ -236,9 +246,10 @@ export default function EmployeesPage() {
       )}
 
       {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-emerald-500 text-white px-5 py-3
-          rounded-xl shadow-lg text-sm font-medium animate-bounce">
-          ✓ {toast}
+        <div className="fixed top-4 right-4 z-50 text-white px-5 py-3 rounded-xl shadow-lg
+          text-sm font-medium animate-fadeUp flex items-center gap-2"
+          style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+          <span>✓</span> {toast}
         </div>
       )}
 
@@ -254,12 +265,17 @@ export default function EmployeesPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-lg md:text-xl font-bold text-slate-800">Quản lý nhân viên</h1>
-              <p className="text-xs md:text-sm text-slate-500 mt-0.5">{employees.length} nhân viên</p>
+              <h1 className="text-lg md:text-xl font-bold text-slate-800 tracking-tight">Quản lý nhân viên</h1>
+              <p className="text-xs md:text-sm text-slate-500 mt-0.5 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-500 inline-block" />
+                {employees.length} nhân viên
+              </p>
             </div>
             <button onClick={() => setShowAdd(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-sky-600 text-white
-                text-sm font-medium rounded-xl hover:bg-sky-700 transition">
+              className="flex items-center gap-2 px-4 py-2 text-white
+                text-sm font-medium rounded-xl transition-all duration-200
+                hover:scale-105 hover:shadow-lg shadow-md"
+              style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
               </svg>
@@ -269,19 +285,20 @@ export default function EmployeesPage() {
 
           {/* Search */}
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
               fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round"
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Tìm theo tên, mã NV, số điện thoại..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white
-                text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition"/>
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-white/60 glass-card
+                text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent
+                transition-all duration-200 placeholder:text-slate-400"/>
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="glass-card rounded-xl md:rounded-2xl overflow-hidden card-hover">
             {loading ? (
               <div className="flex items-center justify-center py-16 text-slate-400 text-sm">
                 Đang tải...
@@ -305,8 +322,8 @@ export default function EmployeesPage() {
                 <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-xs text-slate-400 border-b border-slate-100 bg-slate-50">
-                        <th className="text-left px-5 py-3 font-medium">Nhân viên</th>
+                      <tr className="text-xs text-slate-500 bg-slate-50/70 border-b border-white/40">
+                        <th className="text-left px-5 py-3 font-semibold">Nhân viên</th>
                         <th className="text-left px-3 py-3 font-medium">Mã NV</th>
                         <th className="text-left px-3 py-3 font-medium">Chức vụ</th>
                         <th className="text-left px-3 py-3 font-medium">Điện thoại</th>
@@ -317,11 +334,12 @@ export default function EmployeesPage() {
                     </thead>
                     <tbody>
                       {filtered.map(emp => (
-                        <tr key={emp.id} className="border-b border-slate-50 hover:bg-slate-50 transition">
+                        <tr key={emp.id} className="border-t border-white/40 hover:bg-sky-50/40 transition-colors">
                           <td className="px-5 py-3">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-700
-                                text-sm font-bold flex items-center justify-center shrink-0">
+                              <div className="w-8 h-8 rounded-lg text-sm font-bold
+                                flex items-center justify-center shrink-0 text-white"
+                                style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)' }}>
                                 {emp.fullName.charAt(0)}
                               </div>
                               <div>
@@ -360,9 +378,10 @@ export default function EmployeesPage() {
                 {/* Mobile card list */}
                 <div className="md:hidden divide-y divide-slate-100">
                   {filtered.map(emp => (
-                    <div key={emp.id} className="flex items-center gap-3 px-4 py-3">
-                      <div className="w-10 h-10 rounded-full bg-sky-100 text-sky-700
-                        text-sm font-bold flex items-center justify-center shrink-0">
+                    <div key={emp.id} className="flex items-center gap-3 px-4 py-3 hover:bg-sky-50/40 transition-colors">
+                      <div className="w-10 h-10 rounded-xl text-sm font-bold
+                        flex items-center justify-center shrink-0 text-white"
+                        style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)' }}>
                         {emp.fullName.charAt(0)}
                       </div>
                       <div className="flex-1 min-w-0">

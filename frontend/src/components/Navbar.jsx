@@ -28,64 +28,75 @@ export default function Navbar({ onMenuToggle, onMobileMenuToggle, collapsed }) 
   }, [])
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center px-5 gap-4 shrink-0">
-      {/* Mobile: hamburger opens overlay; Desktop: collapses sidebar */}
+    <header className="h-16 glass-card border-b border-white/50 flex items-center px-5 gap-4 shrink-0 z-30">
+      {/* Mobile hamburger */}
       <button onClick={onMobileMenuToggle}
-        className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition md:hidden">
+        className="p-2 rounded-xl text-slate-500 hover:bg-sky-50 hover:text-sky-600 transition-all duration-200 md:hidden">
         <IcoMenu className="w-5 h-5" />
       </button>
+      {/* Desktop collapse */}
       <button onClick={onMenuToggle}
-        className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition hidden md:flex">
-        {collapsed
-          ? <IcoMenu className="w-5 h-5" />
-          : <IcoArrowLeft className="w-5 h-5" />}
+        className="p-2 rounded-xl text-slate-500 hover:bg-sky-50 hover:text-sky-600 transition-all duration-200 hidden md:flex">
+        {collapsed ? <IcoMenu className="w-5 h-5" /> : <IcoArrowLeft className="w-5 h-5" />}
       </button>
 
-      {/* Date */}
-      <span className="text-sm text-slate-500 hidden md:block capitalize">{dateStr}</span>
+      {/* Date badge */}
+      <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sky-50 border border-sky-100">
+        <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
+        <span className="text-xs text-sky-600 font-medium capitalize">{dateStr}</span>
+      </div>
 
       <div className="flex-1" />
 
       {/* Notification bell */}
-      <button className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition">
+      <button className="relative p-2 rounded-xl text-slate-500 hover:bg-sky-50 hover:text-sky-600 transition-all duration-200">
         <IcoBell className="w-5 h-5" />
-        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
       </button>
 
       {/* User dropdown */}
       <div className="relative" ref={dropRef}>
         <button onClick={() => setDropOpen(v => !v)}
-          className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl
-            hover:bg-slate-100 transition">
-          <div className="w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center text-white text-sm font-bold">
+          className="flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-xl
+            hover:bg-sky-50 transition-all duration-200 border border-transparent hover:border-sky-100">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-md"
+            style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
             {fullName.charAt(0).toUpperCase()}
           </div>
           <div className="text-left hidden sm:block">
             <p className="text-sm font-semibold text-slate-800 leading-tight">{fullName}</p>
             <p className="text-xs text-slate-400 leading-tight capitalize">{role}</p>
           </div>
-          <IcoChevron className="w-4 h-4 text-slate-400" />
+          <IcoChevron className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${dropOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {dropOpen && (
-          <div className="absolute right-0 top-12 w-52 bg-white rounded-xl shadow-xl
-            border border-slate-100 py-1 z-50">
+          <div className="absolute right-0 top-12 w-52 glass-card rounded-2xl shadow-xl
+            border border-white/60 py-1 z-50 animate-fadeUp">
             <div className="px-4 py-3 border-b border-slate-100">
-              <p className="text-sm font-semibold text-slate-800">{fullName}</p>
-              <p className="text-xs text-slate-400 capitalize">{role}</p>
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm"
+                  style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}>
+                  {fullName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">{fullName}</p>
+                  <p className="text-xs text-slate-400 capitalize">{role}</p>
+                </div>
+              </div>
             </div>
             <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm
-              text-slate-600 hover:bg-slate-50 transition">
+              text-slate-600 hover:bg-sky-50 hover:text-sky-700 transition-colors">
               <IcoProfile className="w-4 h-4" /> Thông tin cá nhân
             </button>
             <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm
-              text-slate-600 hover:bg-slate-50 transition">
+              text-slate-600 hover:bg-sky-50 hover:text-sky-700 transition-colors">
               <IcoSetting className="w-4 h-4" /> Cài đặt
             </button>
             <div className="border-t border-slate-100 mt-1" />
             <button onClick={logout}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm
-              text-red-500 hover:bg-red-50 transition">
+              text-red-500 hover:bg-red-50 transition-colors">
               <IcoLogout className="w-4 h-4" /> Đăng xuất
             </button>
           </div>

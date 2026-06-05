@@ -317,27 +317,38 @@ export default function LoginPage() {
       {showForgot && <ForgotModal onClose={() => setShowForgot(false)} />}
 
       {/* ── Left: branding panel ── */}
-      <div className="hidden lg:flex w-[52%] bg-gradient-to-br from-sky-800 via-sky-700 to-sky-500
-                      flex-col justify-between p-14 text-white select-none">
+      <div className="hidden lg:flex w-[52%] flex-col justify-between p-14 text-white select-none relative overflow-hidden"
+        style={{ background: 'linear-gradient(160deg, #0d1f3c 0%, #0e3460 50%, #0ea5e9 100%)' }}>
+
+        {/* Decorative blobs */}
+        <div className="absolute top-0 right-0 w-80 h-80 rounded-full pointer-events-none opacity-20"
+          style={{ background: 'radial-gradient(circle, #38bdf8 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
+        <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full pointer-events-none opacity-10"
+          style={{ background: 'radial-gradient(circle, #0ea5e9 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
 
         {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center">
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
+            style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)' }}>
             <IconBuilding className="w-5 h-5" />
           </div>
           <span className="text-xl font-bold tracking-tight">HR Manager</span>
         </div>
 
         {/* Headline */}
-        <div className="space-y-5">
+        <div className="space-y-5 relative z-10">
           <h1 className="text-5xl font-extrabold leading-tight">
-            Quản lý nhân sự<br />
+            Quản lý nhân sự
           </h1>
+          <p className="text-sky-200 text-base leading-relaxed">
+            Hệ thống quản lý nhân sự toàn diện — chấm công, nghỉ phép, tăng ca và bảng lương trong một nền tảng.
+          </p>
           {/* Feature chips */}
-          <div className="flex flex-wrap gap-2 pt-2">
+          <div className="flex flex-wrap gap-2 pt-1">
             {['Chấm công', 'Nghỉ phép', 'Tăng ca', 'Bảng lương', 'Báo cáo'].map(f => (
               <span key={f}
-                className="px-3 py-1 rounded-full bg-white/15 text-sm font-medium">
+                className="px-3 py-1.5 rounded-full text-sm font-medium border border-white/20
+                  bg-white/10 hover:bg-white/20 transition-colors cursor-default">
                 {f}
               </span>
             ))}
@@ -345,39 +356,45 @@ export default function LoginPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4 relative z-10">
           {[
-            { icon: <IconUsers className="w-5 h-5" />, label: 'Nhân viên' },
-            { icon: <IconDept className="w-5 h-5" />,  label: 'Phòng ban' },
-            { icon: <IconChart className="w-5 h-5" />, label: 'Báo cáo' },
+            { icon: <IconUsers className="w-5 h-5" />, label: 'Nhân viên', val: '124+' },
+            { icon: <IconDept className="w-5 h-5" />,  label: 'Phòng ban', val: '12' },
+            { icon: <IconChart className="w-5 h-5" />, label: 'Báo cáo', val: '∞' },
           ].map(s => (
             <div key={s.label}
-              className="bg-white/10 rounded-2xl p-4 flex flex-col items-center gap-2">
-              <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center">
+              className="rounded-2xl p-4 flex flex-col items-center gap-2 border border-white/10"
+              style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)' }}>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(255,255,255,0.15)' }}>
                 {s.icon}
               </div>
-              <span className="text-sm text-sky-100">{s.label}</span>
+              <span className="text-lg font-bold">{s.val}</span>
+              <span className="text-xs text-sky-200">{s.label}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* ── Right: login form ── */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-white">
-        <div className="w-full max-w-[380px]">
+      <div className="flex-1 flex items-center justify-center p-6"
+        style={{ background: 'linear-gradient(135deg, #f0f6ff 0%, #e8f1fb 50%, #f0f4ff 100%)' }}>
+        <div className="w-full max-w-[400px]">
 
           {/* Mobile logo */}
-          <div className="flex items-center gap-2 mb-10 lg:hidden">
-            <div className="w-9 h-9 bg-sky-600 rounded-xl flex items-center justify-center">
+          <div className="flex items-center gap-2.5 mb-10 lg:hidden">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-md"
+              style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)' }}>
               <IconBuilding className="w-4 h-4 text-white" />
             </div>
             <span className="text-lg font-bold text-slate-800">HR Manager</span>
           </div>
 
-          <h2 className="text-3xl font-bold text-slate-900">Đăng nhập</h2>
-          <p className="text-slate-400 text-sm mt-1 mb-8">
-            Nhập thông tin tài khoản để truy cập hệ thống.
-          </p>
+          <div className="glass-card rounded-2xl shadow-xl p-8 border border-white/60">
+            <h2 className="text-2xl font-bold text-slate-900">Đăng nhập</h2>
+            <p className="text-slate-400 text-sm mt-1 mb-7">
+              Nhập thông tin tài khoản để truy cập hệ thống.
+            </p>
 
           {/* Màn hình bị khoá thiết bị */}
           {deviceBlocked && (
@@ -427,10 +444,10 @@ export default function LoginPage() {
                   onChange={handleChange}
                   placeholder="Nhập tài khoản..."
                   autoComplete="username"
-                  className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 text-sm
-                    bg-slate-50 placeholder:text-slate-400
-                    focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
-                    transition duration-150"
+                  className="w-full pl-9 pr-4 py-3 rounded-xl border border-white/60 text-sm
+                    bg-white/70 placeholder:text-slate-400 backdrop-blur-sm
+                    focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent
+                    transition-all duration-200"
                 />
               </div>
             </div>
@@ -449,10 +466,10 @@ export default function LoginPage() {
                   onChange={handleChange}
                   placeholder="Nhập mật khẩu..."
                   autoComplete="current-password"
-                  className="w-full pl-9 pr-11 py-3 rounded-xl border border-slate-200 text-sm
-                    bg-slate-50 placeholder:text-slate-400
-                    focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
-                    transition duration-150"
+                  className="w-full pl-9 pr-11 py-3 rounded-xl border border-white/60 text-sm
+                    bg-white/70 placeholder:text-slate-400 backdrop-blur-sm
+                    focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent
+                    transition-all duration-200"
                 />
                 <button type="button" onClick={() => setShowPw(v => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400
@@ -483,17 +500,20 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-[.98]
-                text-white text-sm font-semibold transition duration-150
+              className="w-full py-3 rounded-xl text-white text-sm font-semibold
+                transition-all duration-200 active:scale-[.98]
                 disabled:opacity-60 disabled:cursor-not-allowed
-                flex items-center justify-center gap-2 mt-2"
+                flex items-center justify-center gap-2 mt-2
+                hover:scale-[1.02] hover:shadow-lg shadow-md"
+              style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)' }}
             >
               {loading && <IconSpinner className="w-4 h-4 animate-spin" />}
               {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </form>
+          </div>{/* end glass-card */}
 
-          <p className="text-center text-xs text-slate-400 mt-10">
+          <p className="text-center text-xs text-slate-400 mt-6">
             © {new Date().getFullYear()} HR Manager &mdash;{' '}
             <button onClick={() => setShowForgot(true)}
               className="text-sky-500 hover:underline">
