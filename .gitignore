@@ -1,6 +1,8 @@
 # .NET
 backend/**/bin/
 backend/**/obj/
+backend/**/publish/
+backend/**/wwwroot/
 backend/**/.vs/
 backend/**/*.user
 backend/**/*.suo
