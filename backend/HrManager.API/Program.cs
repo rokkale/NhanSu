@@ -72,6 +72,13 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// ── Auto Migration ────────────────────────────────────
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<HrDbContext>();
+    db.Database.Migrate();
+}
+
 // ── Middleware — THỨ TỰ QUAN TRỌNG ──────────────────
 if (app.Environment.IsDevelopment())
 {
